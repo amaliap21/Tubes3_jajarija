@@ -3,13 +3,13 @@
         xmlns:vm="using:src.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1050"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1000"
         x:Class="src.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="src">
 
-     <Design.DataContext>
+    <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
     <Window.Background>
@@ -37,7 +37,7 @@
                     BorderBrush="#44382a"
                     BorderThickness="2"
                     CornerRadius="10"
-                    Margin="15"
+                    Margin="15,10,15,10"
             >
                 <Grid HorizontalAlignment="Stretch" 
                     VerticalAlignment="Top" 
