@@ -28,7 +28,7 @@
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
                 
-                <Rectangle Fill="#917859" Grid.Column="0" Margin="15" />
+                <Rectangle x:Name="imageUploaded" Fill="#917859" Grid.Column="0" Margin="15" />
                 <Rectangle Fill="#917859" Grid.Column="1" Margin="15" />
                 <Rectangle Fill="#917859" Grid.Column="2" Margin="15" />
 
@@ -54,7 +54,6 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- First Column: Button -->
-                    <!-- <Button Grid.Column="0" Content="Pilih Citra" HorizontalAlignment="Center" Padding="15,10,15,10"/> -->
                     <Button Grid.Column="0" Content="Pilih Citra" 
                             HorizontalAlignment="Center" 
                             Padding="25,20,25,20"
@@ -64,23 +63,36 @@
                             BorderThickness="2"        
                             CornerRadius="5"          
                             FontSize="14"
-                            FontWeight="900"/>                      
+                            FontWeight="900"
+                            Click="OnImageUploadClicked"/>
 
                     <!-- Second Column: Two Radio Buttons side by side -->
                     <Border Grid.Column="1" HorizontalAlignment="Center">
-                        <StackPanel  Orientation="Horizontal">
-                            <RadioButton Content="BM" Margin="5,0,5,0" GroupName="Algorithm"/>
-                            <RadioButton Content="KMP" Margin="5,0,5,0" GroupName="Algorithm"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="BMRadioButton" 
+                                         Content="BM" 
+                                         Margin="5,0,5,0" 
+                                         GroupName="Algorithm"
+                                         Checked="OnAlgorithmChecked"/>
+                            <RadioButton x:Name="KMPRadioButton" 
+                                         Content="KMP" 
+                                         Margin="5,0,5,0" 
+                                         GroupName="Algorithm" 
+                                         IsChecked="True"
+                                         Checked="OnAlgorithmChecked"/>
                         </StackPanel>
                     </Border>
 
                     <!-- Third Column: Button -->
-                    <Button Grid.Column="2" 
+                    <Button x:Name="SearchButton" 
+                            Grid.Column="2" 
                             Content="Search" 
                             HorizontalAlignment="Center" 
                             Padding="80,20,80,20"
                             Background="#900000"
-                            Foreground="white"/>
+                            Foreground="white"
+                            IsEnabled="False"
+                            Click="OnSearchClicked"/>
 
                     <!-- Fourth Column: Frame with two TextBlocks -->
                     <Border Grid.Column="3" 
@@ -99,5 +111,4 @@
             </Border>
         </StackPanel>
     </StackPanel>
-    
 </Window>
