@@ -29,20 +29,19 @@
                 </Grid.ColumnDefinitions>
                 
                 <Rectangle x:Name="imageUploaded" Fill="#917859" Grid.Column="0" Margin="15" />
-                <Rectangle Fill="#917859" Grid.Column="1" Margin="15" />
-                <Rectangle Fill="#917859" Grid.Column="2" Margin="15" />
-
+                <Rectangle x:Name="matchedImage" Fill="#917859" Grid.Column="1" Margin="15" />
+                <Border  Background="#917859" Grid.Column="2" Margin="15" CornerRadius="5">
+    <TextBlock x:Name="personDetails" Text="" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+</Border>
             </Grid>
             <Border Background="#917859"
                     BorderBrush="#44382a"
                     BorderThickness="2"
                     CornerRadius="10"
-                    Margin="15"
-            >
+                    Margin="15">
                 <Grid HorizontalAlignment="Stretch" 
-                    VerticalAlignment="Top" 
-                    Margin="15,10,15,10"
-                >
+                      VerticalAlignment="Top" 
+                      Margin="15,10,15,10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="65"/> 
                     </Grid.RowDefinitions>
@@ -100,11 +99,10 @@
                             VerticalAlignment="Center" 
                             Padding="10,10,10,10"
                             CornerRadius="10" 
-                            Margin="0"
-                    >
+                            Margin="0">
                         <StackPanel>
-                            <TextBlock Text="Waktu Pencarian:" Foreground="black" Margin="3"/>
-                            <TextBlock Text="Persentase Kecocokan:" Foreground="black" Margin="3"/>
+                            <TextBlock x:Name="executionTimeTextBlock" Text="Waktu Pencarian:" Foreground="black" Margin="3"/>
+                            <TextBlock x:Name="similarityTextBlock" Text="Persentase Kecocokan:" Foreground="black" Margin="3"/>
                         </StackPanel>
                     </Border>
                 </Grid>

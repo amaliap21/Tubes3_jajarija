@@ -1,59 +1,33 @@
-// Make converter from image to binary
-
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using Avalonia.Media.Imaging;
+using SixLabors.ImageSharp.ColorSpaces;
 
 class Converter
 {
-    public static bool[,] ConvertToBinary(Bitmap bitmap, int threshold)
+    public static bool[] ConvertFullImageToBinary(Bitmap bitmap)
     {
         int width = bitmap.PixelSize.Width;
         int height = bitmap.PixelSize.Height;
 
-        int startX = 0;
-        int startY = 0;
-        int regionWidth = Math.Min(32, width);
-        int regionHeight = Math.Min(32, height);
+        bool[] binaryImage = new bool[width * height];
 
-        // Calculate startX and startY to center the 32x32 region
-        if (width > 32)
-        {
-            startX = (width - 32) / 2;
-        }
-
-        if (height > 32)
-        {
-            startY = (height - 32) / 2;
-        }
-
-        bool[,] binaryImage = new bool[32, 32];
-        int stride = regionWidth * 4; // Each pixel is 4 bytes (RGBA)
+        int stride = width * 4; // Each pixel is 4 bytes (RGBA)
 
         // Allocate unmanaged memory for the buffer
-        IntPtr buffer = Marshal.AllocHGlobal(regionHeight * stride);
+        IntPtr buffer = Marshal.AllocHGlobal(height * stride);
 
         try
         {
-            Avalonia.PixelRect pixelRect = new(startX, startY, regionWidth, regionHeight);
-            bitmap.CopyPixels(pixelRect, buffer, regionHeight * stride, stride);
+            Avalonia.PixelRect pixelRect = new(0, 0, width, height);
+            bitmap.CopyPixels(pixelRect, buffer, height * stride, stride);
 
-            for (int y = 0; y < regionHeight; y++)
+            for (int y = 0; y < height; y++)
             {
-                for (int x = 0; x < regionWidth; x++)
+                for (int x = 0; x < width; x++)
                 {
-                    int pixelX = startX + x;
-                    int pixelY = startY + y;
-
-                    // If the pixel is outside the image bounds, set it to 'false'
-                    if (pixelX < 0 || pixelX >= width || pixelY < 0 || pixelY >= height)
-                    {
-                        binaryImage[x, y] = false;
-                        continue;
-                    }
-
-                    int index = pixelY * stride + pixelX * 4;
+                    int index = y * stride + x * 4;
                     byte b = Marshal.ReadByte(buffer, index);
                     byte g = Marshal.ReadByte(buffer, index + 1);
                     byte r = Marshal.ReadByte(buffer, index + 2);
@@ -62,7 +36,7 @@ class Converter
                     int gray = (int)(0.3 * r + 0.59 * g + 0.11 * b);
 
                     // Apply threshold
-                    binaryImage[x, y] = gray >= threshold;
+                    binaryImage[y * width + x] = gray >= 128;
                 }
             }
         }
@@ -72,74 +46,132 @@ class Converter
             Marshal.FreeHGlobal(buffer);
         }
 
-        // Fill the rest of the binaryImage array with 'false' if the image is smaller than 32x32
-        for (int y = regionHeight; y < 32; y++)
+        return binaryImage;
+    }
+
+    public static bool[] GetSelectedBinary(Bitmap bitmap)
+    {
+        int width = bitmap.PixelSize.Width;
+        int height = bitmap.PixelSize.Height;
+
+        // Calculate the starting point and ensure it's a multiple of 8
+        int startX = (int)Math.Ceiling((width - 40) / 2.0);
+        startX = (startX / 8) * 8;  // Ensure startX is a multiple of 8
+
+        int row = (int)Math.Ceiling(0.75 * height);
+
+        // Ensure startX and row are within bounds
+        if (startX < 0) startX = 0;
+        if (startX + 40 > width) startX = width - 40;
+        if (row < 0) row = 0;
+        if (row >= height) row = height - 1;
+
+
+        bool[] binaryImage = new bool[40];
+
+
+        int stride = width * 4;
+
+        // Allocate unmanaged memory for one row
+        IntPtr buffer = Marshal.AllocHGlobal(height * stride);
+
+
+        try
         {
-            for (int x = 0; x < 32; x++)
+            // Define the region of the image to copy
+            Avalonia.PixelRect pixelRect = new(0, 0, width, height);
+            bitmap.CopyPixels(pixelRect, buffer, height * stride, stride);
+
+
+
+
+            for (int x = 0; x < 40; x++)
             {
-                binaryImage[x, y] = false;
+                int index = (row - 1) * stride + ((x + startX) * 4); // RGBA - 4 bytes per pixel
+                byte b = Marshal.ReadByte(buffer, index);
+                byte g = Marshal.ReadByte(buffer, index + 1);
+                byte r = Marshal.ReadByte(buffer, index + 2);
+
+                // Convert pixel to grayscale
+                int gray = (int)(0.3 * r + 0.59 * g + 0.11 * b);
+
+                binaryImage[x] = gray >= 128;
             }
+        }
+        finally
+        {
+            // Free unmanaged memory
+            Marshal.FreeHGlobal(buffer);
         }
 
         return binaryImage;
     }
 
-    public static string ConvertImageToAsciiFull(Bitmap bitmap, int threshold)
+    public static string ConvertBinaryToAscii(bool[] binary)
     {
-        bool[,] binaryImage = ConvertToBinary(bitmap, threshold);
-        return ConvertBinaryToAscii(binaryImage);
-    }
-
-
-    public static string ConvertBinaryToAscii(bool[,] binary)
-    {
-        const int width = 32;
-        const int height = 32;
-
+        int len = binary.Length;
         StringBuilder result = new();
 
         int toDec = 0;
         int bitCount = 0;
 
-        // Iterate over each bit in the binary array
-        for (int y = 0; y < height; y++)
+        for (int i = 0; i < len; i++)
         {
-            for (int x = 0; x < width; x++)
+            toDec = (toDec << 1) | (binary[i] ? 1 : 0);
+            bitCount++;
+
+            if (bitCount == 8)
             {
-                // Calculate the decimal value by summing up the powers of 2
-                toDec += (binary[x, y] ? 1 : 0) << (7 - bitCount);
-
-                bitCount++;
-
-                // If we've processed 8 bits, convert to ASCII character and append to result
-                if (bitCount == 8)
-                {
-                    result.Append((char)toDec);
-
-                    // Reset counters for the next character
-                    toDec = 0;
-                    bitCount = 0;
-                }
+                result.Append((char)toDec);
+                toDec = 0;
+                bitCount = 0;
             }
         }
 
         return result.ToString();
     }
 
-    public static void PrintBinaryImage(bool[,] binaryImage)
+    public static string ConvertImageToAsciiFull(Bitmap bitmap)
     {
-        int width = binaryImage.GetLength(0);
-        int height = binaryImage.GetLength(1);
+        bool[] binaryImage = ConvertFullImageToBinary(bitmap);
+        return ConvertBinaryToAscii(binaryImage);
+    }
 
-        for (int y = 0; y < height; y++)
+    public static void PrintBinaryImage(bool[] binaryImage)
+    {
+        int counter = 1;
+        for (int i = 0; i < binaryImage.Length; i++)
         {
-            for (int x = 0; x < width; x++)
+            if ((i + 1) % 96 == 1)
             {
-                Console.Write(binaryImage[x, y] ? "1" : "0");
+                Console.Write("Row " + counter + ": ");
             }
+            Console.Write(binaryImage[i] ? "1" : "0");
+            if ((i + 1) % 96 == 0)
+            {
+                Console.WriteLine();
+                counter++;
+            }
+        }
+    }
+
+    public static void PrintAsciiImage(bool[] binaryImage)
+    {
+        PrintBinaryImage(binaryImage);
+        string asciiImage = ConvertBinaryToAscii(binaryImage);
+        int start = 0;
+        for (int i = 0; i < 103; i++)
+        {
+            Console.Write("Row " + i + ": " + asciiImage.Substring(start, 12));
+            start += 12;
+
             Console.WriteLine();
         }
     }
 
-
+    public static void Print5Ascii(bool[] binaryImage)
+    {
+        string asciiImage = ConvertBinaryToAscii(binaryImage);
+        Console.WriteLine(asciiImage);
+    }
 }

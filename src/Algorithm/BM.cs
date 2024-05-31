@@ -37,8 +37,8 @@ class BM
 
     public static int[] BuildLast(string pattern)
     {
-        int[] last = new int[128]; // ASCII char set
-        for (int i = 0; i < 128; i++)
+        int[] last = new int[256]; // ASCII char set
+        for (int i = 0; i < 256; i++)
             last[i] = -1; // initialize array
 
         for (int i = 0; i < pattern.Length; i++)
