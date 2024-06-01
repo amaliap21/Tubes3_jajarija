@@ -49,7 +49,7 @@ class Converter
         return binaryImage;
     }
 
-    public static bool[] GetSelectedBinary(Bitmap bitmap)
+    public static bool[] GetSelectedBinary(Bitmap bitmap, String type)
     {
         int width = bitmap.PixelSize.Width;
         int height = bitmap.PixelSize.Height;
@@ -58,7 +58,7 @@ class Converter
         int startX = (int)Math.Ceiling((width - 80) / 2.0);
         startX = (startX / 8) * 8;  // Ensure startX is a multiple of 8
 
-        int row = (int)Math.Ceiling(0.75 * height);
+        int row = type == "BOTTOM" ? (int)Math.Ceiling(0.75 * height) : (int)Math.Ceiling(0.95 * height);
 
         // Ensure startX and row are within bounds
         if (startX < 0) startX = 0;
