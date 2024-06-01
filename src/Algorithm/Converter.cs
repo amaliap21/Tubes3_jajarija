@@ -55,19 +55,19 @@ class Converter
         int height = bitmap.PixelSize.Height;
 
         // Calculate the starting point and ensure it's a multiple of 8
-        int startX = (int)Math.Ceiling((width - 40) / 2.0);
+        int startX = (int)Math.Ceiling((width - 80) / 2.0);
         startX = (startX / 8) * 8;  // Ensure startX is a multiple of 8
 
         int row = (int)Math.Ceiling(0.75 * height);
 
         // Ensure startX and row are within bounds
         if (startX < 0) startX = 0;
-        if (startX + 40 > width) startX = width - 40;
+        if (startX + 80 > width) startX = width - 80;
         if (row < 0) row = 0;
         if (row >= height) row = height - 1;
 
 
-        bool[] binaryImage = new bool[40];
+        bool[] binaryImage = new bool[80];
 
 
         int stride = width * 4;
@@ -85,7 +85,7 @@ class Converter
 
 
 
-            for (int x = 0; x < 40; x++)
+            for (int x = 0; x < 80; x++)
             {
                 int index = (row - 1) * stride + ((x + startX) * 4); // RGBA - 4 bytes per pixel
                 byte b = Marshal.ReadByte(buffer, index);

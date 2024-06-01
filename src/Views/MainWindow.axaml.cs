@@ -77,8 +77,11 @@ namespace src.Views
             stopwatch.Stop();
 
             if (!found)
+
             {
-                SearchForApproximateMatch(imagesToCompare, imageAscii);
+
+                string fullAscii = ConvertBinaryToAscii(ConvertFullImageToBinary(uploadedImage));
+                SearchForApproximateMatch(imagesToCompare, fullAscii);
             }
 
             executionTimeTextBlock.Text = $"Waktu Pencarian: {stopwatch.ElapsedMilliseconds} ms";
@@ -133,6 +136,8 @@ namespace src.Views
                 var dbImageAscii = ConvertBinaryToAscii(dbImageBinary);
 
                 double similarity = ComputeSimilarity(dbImageAscii, imageAscii);
+
+                
                 if (similarity > maxSimilarity)
                 {
                     maxSimilarity = similarity;
@@ -180,7 +185,7 @@ namespace src.Views
         private string GetImagePath(string imageName)
         {
             string truncatedBaseDirectory = baseDirectory.Substring(0, baseDirectory.IndexOf("src", StringComparison.Ordinal));
-            return System.IO.Path.Combine(truncatedBaseDirectory, "test", imageName);
+            return System.IO.Path.Combine(truncatedBaseDirectory, "test", "Real", imageName);
         }
     }
 }
