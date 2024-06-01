@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -22,8 +24,8 @@ namespace src.Views
         public Bitmap uploadedImage;
         private readonly DatabaseHelper dbHelper = new();
         private readonly string baseDirectory = AppContext.BaseDirectory;
-
-
+        private string fullImageAscii;  // To store the full ASCII representation of the uploaded image
+        private readonly ConcurrentBag<(ImageRecord imageEntity, string dbImageAscii)> dbImagesWithAscii = new();  // To store ASCII representations of DB images
 
         public MainWindow()
         {
@@ -63,36 +65,48 @@ namespace src.Views
             SearchButton.IsEnabled = uploadedImage != null && (BMRadioButton.IsChecked == true || KMPRadioButton.IsChecked == true);
         }
 
-        private void OnSearchClicked(object sender, RoutedEventArgs e)
+        private async void OnSearchClicked(object sender, RoutedEventArgs e)
         {
             if (uploadedImage == null) return;
 
             var stopwatch = Stopwatch.StartNew();
             string algorithm = BMRadioButton.IsChecked == true ? "BM" : "KMP";
-            var imageBinary = GetSelectedBinary(uploadedImage);
+            var imageBinary = GetSelectedBinary(uploadedImage, "BOTTOM");
             string imageAscii = ConvertBinaryToAscii(imageBinary);
+
+
+
             var imagesToCompare = dbHelper.GetAllImages();
 
-            bool found = SearchForExactMatch(imagesToCompare, imageAscii, algorithm);
-            stopwatch.Stop();
+            bool found = await SearchForExactMatchAsync(imagesToCompare, imageAscii, algorithm);
+
 
             if (!found)
             {
-                SearchForApproximateMatch(imagesToCompare, imageAscii);
+                var secondChance = GetSelectedBinary(uploadedImage, "TOP");
+                string asciiSecond = ConvertBinaryToAscii(secondChance);
+                found = SearchForExact2(dbImagesWithAscii, asciiSecond, algorithm);
             }
+
+            if (!found)
+            { // Store the full ASCII representation of the uploaded image
+                fullImageAscii = ConvertBinaryToAscii(ConvertFullImageToBinary(uploadedImage));
+                SearchForApproximateMatch(dbImagesWithAscii, fullImageAscii);
+            }
+            stopwatch.Stop();
 
             executionTimeTextBlock.Text = $"Waktu Pencarian: {stopwatch.ElapsedMilliseconds} ms";
         }
 
-        private bool SearchForExactMatch(IEnumerable<ImageRecord> imagesToCompare, string imageAscii, string algorithm)
+        private async Task<bool> SearchForExactMatchAsync(IEnumerable<ImageRecord> imagesToCompare, string imageAscii, string algorithm)
         {
-            foreach (var imageEntity in imagesToCompare)
+            var tasks = imagesToCompare.Select(async imageEntity =>
             {
                 string imagePath = GetImagePath(imageEntity.BerkasCitra);
                 if (!File.Exists(imagePath))
                 {
                     Console.WriteLine($"File {imagePath} not found.");
-                    continue;
+                    return (imageEntity, (Bitmap)null, false);
                 }
 
                 using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
@@ -102,43 +116,68 @@ namespace src.Views
 
                 int result = algorithm == "BM" ? BmMatch(dbImageAscii, imageAscii) : KmpMatch(dbImageAscii, imageAscii);
 
-                if (result != -1)
+                return result != -1 ? (imageEntity, dbImage, true) : (imageEntity, dbImage, false);
+            });
+
+            var results = await Task.WhenAll(tasks);
+
+            foreach (var (imageEntity, dbImage, isMatch) in results)
+            {
+                if (isMatch)
                 {
                     matchedImage.Fill = new ImageBrush { Source = dbImage };
                     DisplayPersonDetails(imageEntity.Name);
                     similarityTextBlock.Text = "Persentase Kecocokan: 100%";
                     return true;
                 }
+                else if (dbImage != null)
+                {
+                    dbImagesWithAscii.Add((imageEntity, ConvertBinaryToAscii(ConvertFullImageToBinary(dbImage))));
+                }
             }
+
             return false;
         }
 
-        private void SearchForApproximateMatch(IEnumerable<ImageRecord> imagesToCompare, string imageAscii)
+        private bool SearchForExact2(IEnumerable<(ImageRecord imageEntity, string dbImageAscii)> imagesToCompare, string imageAscii, string algorithm)
+        {
+            foreach (var (imageEntity, dbImageAscii) in imagesToCompare)
+            {
+                int result = algorithm == "BM" ? BmMatch(dbImageAscii, imageAscii) : KmpMatch(dbImageAscii, imageAscii);
+                if (result != -1)
+                {
+                    matchedImage.Fill = new ImageBrush { Source = new Bitmap(GetImagePath(imageEntity.BerkasCitra)) };
+                    DisplayPersonDetails(imageEntity.Name);
+                    similarityTextBlock.Text = "Persentase Kecocokan: 100%";
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void SearchForApproximateMatch(IEnumerable<(ImageRecord imageEntity, string dbImageAscii)> imagesToCompare, string imageAscii)
         {
             double maxSimilarity = 0.0;
             ImageRecord bestMatch = null;
+            object lockObject = new object(); // Used for thread-safe updates
 
-            foreach (var imageEntity in imagesToCompare)
+            Parallel.ForEach(imagesToCompare, (item) =>
             {
-                string imagePath = GetImagePath(imageEntity.BerkasCitra);
-                if (!File.Exists(imagePath))
-                {
-                    Console.WriteLine($"File {imagePath} not found.");
-                    continue;
-                }
-
-                using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
-                var dbImage = new Bitmap(stream);
-                var dbImageBinary = ConvertFullImageToBinary(dbImage);
-                var dbImageAscii = ConvertBinaryToAscii(dbImageBinary);
-
+                var (imageEntity, dbImageAscii) = item;
                 double similarity = ComputeSimilarity(dbImageAscii, imageAscii);
-                if (similarity > maxSimilarity)
+
+                Console.WriteLine("AYam");
+
+                lock (lockObject)
                 {
-                    maxSimilarity = similarity;
-                    bestMatch = imageEntity;
+                    if (similarity > maxSimilarity)
+                    {
+                        maxSimilarity = similarity;
+                        bestMatch = imageEntity;
+                    }
                 }
-            }
+            });
 
             if (maxSimilarity > 60)
             {
@@ -148,7 +187,6 @@ namespace src.Views
             }
             else
             {
-
                 similarityTextBlock.Text = "Persentase Kecocokan: 0%";
             }
         }
@@ -180,7 +218,7 @@ namespace src.Views
         private string GetImagePath(string imageName)
         {
             string truncatedBaseDirectory = baseDirectory.Substring(0, baseDirectory.IndexOf("src", StringComparison.Ordinal));
-            return System.IO.Path.Combine(truncatedBaseDirectory, "test", imageName);
+            return System.IO.Path.Combine(truncatedBaseDirectory, "test", "Real", imageName);
         }
     }
 }
