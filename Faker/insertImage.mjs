@@ -3,6 +3,7 @@ import csv from "csv-parser";
 import mysql from "mysql";
 import { config } from "dotenv";
 
+
 // Load environment variables from .env file
 config();
 // Create a database connection
@@ -80,3 +81,5 @@ connection.connect((err) => {
       });
   });
 });
+
+
