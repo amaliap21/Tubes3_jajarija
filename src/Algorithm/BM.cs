@@ -8,6 +8,8 @@ class BM
         int m = pattern.Length;
         int i = m - 1;
 
+        
+
         if (i > n - 1)
             return -1; // no match if pattern is longer than text
 
