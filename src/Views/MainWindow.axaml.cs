@@ -74,12 +74,9 @@ namespace src.Views
             var imageBinary = GetSelectedBinary(uploadedImage, "BOTTOM");
             string imageAscii = ConvertBinaryToAscii(imageBinary);
 
-
-
             var imagesToCompare = dbHelper.GetAllImages();
 
             bool found = await SearchForExactMatchAsync(imagesToCompare, imageAscii, algorithm);
-
 
             if (!found)
             {
@@ -89,12 +86,12 @@ namespace src.Views
             }
 
             if (!found)
-            { // Store the full ASCII representation of the uploaded image
+            {
                 fullImageAscii = ConvertBinaryToAscii(ConvertFullImageToBinary(uploadedImage));
                 SearchForApproximateMatch(dbImagesWithAscii, fullImageAscii);
             }
-            stopwatch.Stop();
 
+            stopwatch.Stop();
             executionTimeTextBlock.Text = $"Waktu Pencarian: {stopwatch.ElapsedMilliseconds} ms";
         }
 
@@ -166,9 +163,6 @@ namespace src.Views
             {
                 var (imageEntity, dbImageAscii) = item;
                 double similarity = ComputeSimilarity(dbImageAscii, imageAscii);
-
-                Console.WriteLine("AYam");
-
                 lock (lockObject)
                 {
                     if (similarity > maxSimilarity)
@@ -183,7 +177,7 @@ namespace src.Views
             {
                 matchedImage.Fill = new ImageBrush { Source = new Bitmap(GetImagePath(bestMatch.BerkasCitra)) };
                 DisplayPersonDetails(bestMatch.Name);
-                similarityTextBlock.Text = $"Persentase Kecocokan: {maxSimilarity}%";
+                similarityTextBlock.Text = $"Persentase Kecocokan: {maxSimilarity:F2}%";
             }
             else
             {

@@ -13,9 +13,8 @@ class Converter
 
         bool[] binaryImage = new bool[width * height];
 
-        int stride = width * 4; // Each pixel is 4 bytes (RGBA)
-
-        // Allocate unmanaged memory for the buffer
+        int stride = width * 4; 
+        
         IntPtr buffer = Marshal.AllocHGlobal(height * stride);
 
         try
@@ -32,17 +31,16 @@ class Converter
                     byte g = Marshal.ReadByte(buffer, index + 1);
                     byte r = Marshal.ReadByte(buffer, index + 2);
 
-                    // Convert pixel to grayscale
+                
                     int gray = (int)(0.3 * r + 0.59 * g + 0.11 * b);
 
-                    // Apply threshold
                     binaryImage[y * width + x] = gray >= 128;
                 }
             }
         }
         finally
         {
-            // Free unmanaged memory
+   
             Marshal.FreeHGlobal(buffer);
         }
 
@@ -54,27 +52,23 @@ class Converter
         int width = bitmap.PixelSize.Width;
         int height = bitmap.PixelSize.Height;
 
-        // Calculate the starting point and ensure it's a multiple of 8
-        int startX = (int)Math.Ceiling((width - 80) / 2.0);
-        startX = (startX / 8) * 8;  // Ensure startX is a multiple of 8
+        int startX = (int)Math.Ceiling((width - 88) / 2.0);
+        startX = startX / 8 * 8;  
 
         int row = type == "BOTTOM" ? (int)Math.Ceiling(0.75 * height) : (int)Math.Ceiling(0.95 * height);
 
-        // Ensure startX and row are within bounds
         if (startX < 0) startX = 0;
-        if (startX + 80 > width) startX = width - 80;
+        if (startX + 88 > width) startX = width - 88;
         if (row < 0) row = 0;
         if (row >= height) row = height - 1;
 
 
-        bool[] binaryImage = new bool[80];
+        bool[] binaryImage = new bool[88];
 
 
         int stride = width * 4;
 
-        // Allocate unmanaged memory for one row
         IntPtr buffer = Marshal.AllocHGlobal(height * stride);
-
 
         try
         {
@@ -85,7 +79,7 @@ class Converter
 
 
 
-            for (int x = 0; x < 80; x++)
+            for (int x = 0; x < 88; x++)
             {
                 int index = (row - 1) * stride + ((x + startX) * 4); // RGBA - 4 bytes per pixel
                 byte b = Marshal.ReadByte(buffer, index);

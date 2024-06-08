@@ -1,5 +1,6 @@
 using System;
-
+using System.Collections.Generic;
+using System.Threading.Tasks;
 class LevenshteinDistance
 {
     public static int Compute(string s1, string s2)
@@ -41,5 +42,25 @@ class LevenshteinDistance
 
         double similarity = (1.0 - ((double)distance / maxLen)) * 100.0;
         return similarity;
+    }
+
+    public static double ComputeMaxSimilarityParallel(List<Tuple<string, string>> pairs)
+    {
+        object lockObject = new object();
+        double maxSimilarity = 0.0;
+
+        Parallel.ForEach(pairs, pair =>
+        {
+            double similarity = ComputeSimilarity(pair.Item1, pair.Item2);
+            lock (lockObject)
+            {
+                if (similarity > maxSimilarity)
+                {
+                    maxSimilarity = similarity;
+                }
+            }
+        });
+
+        return maxSimilarity;
     }
 }
